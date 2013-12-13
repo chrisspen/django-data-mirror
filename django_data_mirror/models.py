@@ -86,6 +86,13 @@ class DataSource(object):
         raise NotImplementedError
     
     @classmethod
+    def refresh(cls, **kwargs):
+        """
+        Reads the associated API and saves data to tables.
+        """
+        todo
+    
+    @classmethod
     def analyze(cls, max_lines=1000, **kwargs):
         """
         Looks at its data and attempts to auto-generate an appropriate
