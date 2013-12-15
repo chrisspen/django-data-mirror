@@ -86,11 +86,11 @@ class DataSource(object):
         raise NotImplementedError
     
     @classmethod
-    def refresh(cls, **kwargs):
+    def refresh(cls, bulk=False, **kwargs):
         """
         Reads the associated API and saves data to tables.
         """
-        todo
+        raise NotImplementedError
     
     @classmethod
     def analyze(cls, max_lines=1000, **kwargs):

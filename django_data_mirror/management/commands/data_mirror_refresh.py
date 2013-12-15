@@ -7,13 +7,22 @@ from django.core.management.base import BaseCommand
 from django_data_mirror.models import DataSource
 
 class Command(BaseCommand):
-    help = ''
-    args = ''
+    help = 'Updated models storing data from an external source.'
+    args = '<target names>'
     option_list = BaseCommand.option_list + (
-#        make_option('--max-lines',
-#            dest='max_lines',
-#            default=1000,
-#            help='The maximum number of lines to look at from a feed.'),
+        make_option('--bulk',
+            dest='bulk',
+            action='store_true',
+            default=False,
+            help='If given, attempts to download bulk data instead of incrementally.'),
+        make_option('--fn',
+            dest='fn',
+            help='If given, the local filename to use.'),
+        make_option('--no-download',
+            dest='no_download',
+            action='store_true',
+            default=False,
+            help='If given, no files will be downloaded.'),
     )
     
     def handle(self, *args, **options):

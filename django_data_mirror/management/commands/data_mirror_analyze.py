@@ -7,8 +7,8 @@ from django.core.management.base import BaseCommand
 from django_data_mirror.models import DataSource
 
 class Command(BaseCommand):
-    help = ''
-    args = ''
+    help = 'Attempts to generate Django models to store data from an external source.'
+    args = '<target names>'
     option_list = BaseCommand.option_list + (
         make_option('--max-lines',
             dest='max_lines',
