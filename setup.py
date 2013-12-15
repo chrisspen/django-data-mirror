@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import os
-from distutils.core import setup, find_packages, Command
+from setuptools import setup, find_packages, Command
+
 import django_data_mirror
 
 setup(
