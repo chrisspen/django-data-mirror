@@ -1,6 +1,9 @@
+import os
 import re
 from pprint import pprint
 from collections import namedtuple
+from datetime import date
+import dateutil.parser
 
 MAX_CHAR_LENGTH = 100
 
@@ -62,6 +65,24 @@ def mixed_to_underscore(name):
     s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
     return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
 
+def get_remote_resource(url, method='wget', fn=None):
+    """
+    Downloads potentially large file.
+    """
+    if method not in ('wget',):
+        raise NotImplementedError
+    if not fn:
+        'http://scdb.wustl.edu/_brickFiles/2013_01/SCDB_2013_01_justiceCentered_Citation.csv.zip'.split('/')[-1].split('?')[0]
+    fn = '/tmp/'+url.split('/')[-1].split('?')[0]
+    if os.path.isfile(fn):
+        #TODO:check filesize?
+        print 'Skipping redundant download.'
+        return fn
+    cmd = 'wget {url} --output-document={fn}'.format(url=url, fn=fn)
+    #print cmd
+    os.system(cmd)
+    return fn
+
 class DataSource(object):
     """
     A general definition for the source where we'll be retrieving data from.
@@ -70,6 +91,132 @@ class DataSource(object):
     app_label = None
     
     model_name_prefix = None
+    
+    @classmethod
+    def to_bool(cls, v, from_string=True):
+        if from_string:
+            return True if str(v).strip() in (True, '1', 'True') else False
+        return bool(v)
+    
+    @classmethod
+    def to_int(cls, v, from_string=True):
+        return int(v)
+    
+    @classmethod
+    def to_positive_int(cls, v, from_string=True):
+        return max(int(v), 0)
+    
+    @classmethod
+    def to_float(cls, v, from_string=True):
+        return float(v)
+    
+    @classmethod
+    def to_date(cls, v, from_string=True):
+        if isinstance(v, basestring) and not v.strip():
+            return
+        dt = dateutil.parser.parse(v)
+        return date(dt.year, dt.month, dt.day)
+    
+    @classmethod
+    def to_datetime(cls, v, from_string=True):
+        if isinstance(v, basestring) and not v.strip():
+            return
+        return dateutil.parser.parse(v)
+    
+    @classmethod
+    def to_instance(cls, raw, model,
+        natural_keys=None, additional={}, field_mapping={},
+        from_string=True,
+        override_local=False):
+        """
+        Converts the raw dictionary of data into an instance of the given
+        class. Unless otherwise specified, assumes there's a one-to-one mapping
+        between the keys in the raw dictionary and the fields in the target
+        model.
+        
+        Differences in field mappings should be specified by `field_mapping`,
+        which is of the form {raw_field_name:model_field_name}.
+        
+        The parameter `key` is a tuple containing the fields that uniquely
+        identify the instance and can be used as arguments to the model's
+        `get_or_create()`.
+        
+        The parameter `additional` specifies additional data to pass to the
+        model's constructor.
+        
+        Basic data validation will be attempted, depending on the target field,
+        type, but any custom validation should be implemented as methods to
+        this class of the form `clean_fieldname`, where fieldname is replaced
+        with the name of the field in the raw dictionary.
+        
+        If `from_string` is True, assumes all data is being converted from an
+        original string form. e.g. The value "False" going into a BooleanField
+        should be converted into the value `False`, not bool("False") == True.
+        
+        If `override_local` is True, the field values in any existing record
+        will be overwritten with the incoming value.
+        """
+        
+        def get_converter(field):
+            name = type(field).__name__.replace('Field', '')
+            if name == 'Boolean':
+                return cls.to_bool
+            elif name == 'PositiveInteger':
+                return cls.to_positive_int
+            elif name == 'Integer':
+                return cls.to_int
+            elif name == 'Float':
+                return cls.to_float
+            elif name == 'Date':
+                return cls.to_date
+            elif name == 'DateTime':
+                return cls.to_datetime
+            elif name in ('Char', 'Text'):
+                return (lambda s, from_string=True: s)
+            else:
+                raise NotImplementedError, 'Unhandled field type: %s=%s' \
+                    % (field.name, type(field).__name__,)
+        
+        natural_keys = natural_keys or getattr(model, 'natural_keys', None)
+        if not natural_keys:
+            raise NotImplementedError, 'No model natural_keys list specified.'
+        key_data = {}
+        defaults_data = {}
+        override_data = {}
+        for field in model._meta.fields:
+            print field.name
+            name = field_mapping.get(field.name, field.name)
+            if name in raw:
+                value = raw[name]
+                print 'raw field:',name,value
+                if hasattr(cls, 'clean_%s' % name):
+                    value = getattr(cls, 'clean_%s' % name)(value)
+                else:
+                    value = get_converter(field)(value)
+                if name in natural_keys:
+                    key_data[name] = value
+                else:
+                    defaults_data[name] = value
+                    if override_local:
+                        override_data[name] = value
+        for name, value in additional.iteritems():
+            #name = field_mapping.get(field.name, field.name)
+            if name in natural_keys:
+                key_data[name] = additional[name]
+            else:
+                defaults_data[name] = value
+                if override_local:
+                    override_data[name] = value
+        print 'key_data:',key_data
+        print 'defaults_data:',defaults_data
+        print 'override_data:',override_data
+        key_data['defaults'] = defaults_data
+        o, _ = model.objects.get_or_create(**key_data)
+        for k, v in override_data.iteritems():
+            setattr(o, k, v)
+        if override_data:
+            o.save()
+        return o
     
     @classmethod
     def get_feeds(cls):
@@ -86,7 +233,7 @@ class DataSource(object):
         raise NotImplementedError
     
     @classmethod
-    def refresh(cls, bulk=False, **kwargs):
+    def refresh(cls, bulk=False, skip_to=None, **kwargs):
         """
         Reads the associated API and saves data to tables.
         """

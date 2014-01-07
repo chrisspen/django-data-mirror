@@ -18,6 +18,9 @@ class Command(BaseCommand):
         make_option('--fn',
             dest='fn',
             help='If given, the local filename to use.'),
+        make_option('--skip-to',
+            dest='skip_to',
+            help='A record indicator that the backend processor should start from.'),
         make_option('--no-download',
             dest='no_download',
             action='store_true',
@@ -32,3 +35,4 @@ class Command(BaseCommand):
                 continue
             print cls
             cls.refresh(**options)
+            
