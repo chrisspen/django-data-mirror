@@ -6,12 +6,13 @@ from datetime import date
 import dateutil.parser
 
 from django.db import models
+from django.utils.translation import ugettext, ugettext_lazy as _
 
 try:
     from admin_steroids.utils import StringWithTitle
     APP_LABEL = StringWithTitle('django_data_mirror', 'Data Mirror')
 except ImportError:
-    APP_LABEL = 'data_mirror'
+    APP_LABEL = 'django_data_mirror'
 
 MAX_CHAR_LENGTH = 100
 
@@ -127,6 +128,8 @@ class DataSourceControl(models.Model):
     
     class Meta:
         app_label = APP_LABEL
+        verbose_name = _('control')
+        verbose_name_plural = _('controls')
     
     def __unicode__(self):
         return self.slug
@@ -169,6 +172,11 @@ class DataSourceFile(models.Model):
         blank=True,
         null=True)
     
+    class Meta:
+        app_label = APP_LABEL
+        verbose_name = _('file')
+        verbose_name_plural = _('files')
+        
     def __unicode__(self):
         return self.name
 
