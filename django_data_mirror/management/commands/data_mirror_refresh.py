@@ -4,7 +4,7 @@ from optparse import make_option
 from django.conf import settings
 from django.core.management.base import BaseCommand
 
-from django_data_mirror.models import DataSource
+from django_data_mirror.models import DataSourceControl
 
 class Command(BaseCommand):
     help = 'Updated models storing data from an external source.'
@@ -29,10 +29,15 @@ class Command(BaseCommand):
     )
     
     def handle(self, *args, **options):
-        target_names = set(_.strip() for _ in args)
-        for cls in DataSource.__subclasses__():
-            if cls.__name__ not in target_names:
-                continue
-            print cls
-            cls.refresh(**options)
-            
+        DataSourceControl.populate()
+        q = DataSourceControl.objects.get_enabled()
+        slugs = set(_.strip() for _ in args)
+        if slugs:
+            q = q.filter(slug__in=slugs)
+        total = q.count()
+        i = 0
+        for control in q.iterator():
+            i += 1
+            print 'Processing %s (%i of %i)' % (control.slug, i, total)
+            control.refresh(**options)
+        

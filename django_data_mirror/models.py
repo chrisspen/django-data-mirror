@@ -5,6 +5,14 @@ from collections import namedtuple
 from datetime import date
 import dateutil.parser
 
+from django.db import models
+
+try:
+    from admin_steroids.utils import StringWithTitle
+    APP_LABEL = StringWithTitle('django_data_mirror', 'Data Mirror')
+except ImportError:
+    APP_LABEL = 'data_mirror'
+
 MAX_CHAR_LENGTH = 100
 
 class ForeignKey(object):
@@ -83,47 +91,121 @@ def get_remote_resource(url, method='wget', fn=None):
     os.system(cmd)
     return fn
 
-class DataSource(object):
+_data_sources = {}
+
+def register(cls, slug=None):
+    slug = slug or cls.__name__
+    if slug in _data_sources and _data_sources[slug] != cls:
+        raise Exception, 'Slug %s has already been registered with class %s.' % (slug, cls)
+    _data_sources[slug] = cls
+
+def lookup(slug):
+    return _data_sources[slug]
+
+class DataSourceControlManager(models.Manager):
+    
+    def get_enabled(self):
+        return self.filter(enabled=True)
+
+class DataSourceControl(models.Model):
     """
     A general definition for the source where we'll be retrieving data from.
     """
     
-    app_label = None
+    objects = DataSourceControlManager()
     
-    model_name_prefix = None
+    slug = models.CharField(
+        max_length=1000,
+        blank=False,
+        unique=True,
+        db_index=True,
+        null=False)
     
+    enabled = models.BooleanField(
+        default=True,
+        db_index=True)
+    
+    class Meta:
+        app_label = APP_LABEL
+    
+    def __unicode__(self):
+        return self.slug
+        
     @classmethod
+    def populate(cls):
+        for slug, _cls in _data_sources.iteritems():
+            cls.objects.get_or_create(slug=slug)
+            
+    def refresh(self, *args, **kwargs):
+        handler = lookup(self.slug)()
+        handler.refresh(*args, **kwargs)
+
+class DataSourceFile(models.Model):
+    
+    source = models.ForeignKey('DataSourceControl')
+    
+    name = models.CharField(
+        max_length=200,
+        blank=False,
+        null=False,
+        db_index=True)
+    
+    created = models.DateTimeField(
+        auto_now_add=True,
+        blank=False,
+        null=False)
+    
+    downloaded = models.BooleanField(default=False, db_index=True)
+    
+    complete = models.BooleanField(default=False, db_index=True)
+    
+    total_lines = models.PositiveIntegerField(default=0)
+    
+    total_lines_complete = models.PositiveIntegerField(default=0)
+    
+    percent = models.FloatField(blank=True, null=True)
+    
+    completed = models.DateTimeField(
+        blank=True,
+        null=True)
+    
+    def __unicode__(self):
+        return self.name
+
+class DataSource(object):
+
+    def __init__(self, *args, **kwargs):
+        pass
+
+    @classmethod
+    def register(cls, slug=None):
+        register(cls, slug=slug)
+
     def to_bool(cls, v, from_string=True):
         if from_string:
             return True if str(v).strip() in (True, '1', 'True') else False
         return bool(v)
     
-    @classmethod
     def to_int(cls, v, from_string=True):
         return int(v)
     
-    @classmethod
     def to_positive_int(cls, v, from_string=True):
         return max(int(v), 0)
     
-    @classmethod
     def to_float(cls, v, from_string=True):
         return float(v)
     
-    @classmethod
     def to_date(cls, v, from_string=True):
         if isinstance(v, basestring) and not v.strip():
             return
         dt = dateutil.parser.parse(v)
         return date(dt.year, dt.month, dt.day)
     
-    @classmethod
     def to_datetime(cls, v, from_string=True):
         if isinstance(v, basestring) and not v.strip():
             return
         return dateutil.parser.parse(v)
     
-    @classmethod
     def to_instance(cls, raw, model,
         natural_keys=None, additional={}, field_mapping={},
         from_string=True,
@@ -218,8 +300,7 @@ class DataSource(object):
             o.save()
         return o
     
-    @classmethod
-    def get_feeds(cls):
+    def get_feeds(self):
         """
         Returns a generator yielding each unique feed of data to be retrieved.
         Each feed is assumed to be a list, corresponding to a single database
@@ -232,15 +313,13 @@ class DataSource(object):
         """
         raise NotImplementedError
     
-    @classmethod
-    def refresh(cls, bulk=False, skip_to=None, **kwargs):
+    def refresh(self, bulk=False, skip_to=None, **kwargs):
         """
         Reads the associated API and saves data to tables.
         """
         raise NotImplementedError
     
-    @classmethod
-    def analyze(cls, max_lines=1000, **kwargs):
+    def analyze(self, max_lines=1000, **kwargs):
         """
         Looks at its data and attempts to auto-generate an appropriate
         Django model.
@@ -329,4 +408,3 @@ class DataSource(object):
             if cls.app_label:
                 print '        app_label = "%s"' % (cls.app_label,)
             print '        verbose_name = "%s"' % (verbose_name,)
-            
