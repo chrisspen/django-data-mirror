@@ -26,6 +26,13 @@ class Command(BaseCommand):
             action='store_true',
             default=False,
             help='If given, no files will be downloaded.'),
+        make_option('--force',
+            action='store_true',
+            default=False,
+            help='Signals to the backend that files should be processed even if they are already marked as complete.'),
+        make_option('--ids',
+            dest='ids',
+            help='A comma-delimited list of IDs to solely refresh.'),
     )
     
     def handle(self, *args, **options):
@@ -35,6 +42,10 @@ class Command(BaseCommand):
         if slugs:
             q = q.filter(slug__in=slugs)
         total = q.count()
+        
+        ids = [_.strip() for _ in (options['ids'] or '').split(',') if _.strip()]
+        options['ids'] = ids
+        
         i = 0
         for control in q.iterator():
             i += 1
