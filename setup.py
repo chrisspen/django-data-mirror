@@ -12,11 +12,12 @@ setup(
     author='Chris Spencer',
     author_email='chrisspen@gmail.com',
     url='http://github.com/chrisspen/django-data-mirror',
+    #https://pypi.python.org/pypi?%3Aaction=list_classifiers
     classifiers=[
         'Development Status :: 4 - Beta',
         'Framework :: Django',
         'Intended Audience :: Developers',
-        'License :: OSI Approved :: LGPL License',
+        'License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
     ],
