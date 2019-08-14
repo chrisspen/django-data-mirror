@@ -4,6 +4,18 @@ from setuptools import setup, find_packages, Command
 
 import django_data_mirror
 
+CURRENT_DIR = os.path.abspath(os.path.dirname(__file__))
+
+def get_reqs(*fns):
+    lst = []
+    for fn in fns:
+        for package in open(os.path.join(CURRENT_DIR, fn)).readlines():
+            package = package.strip()
+            if not package:
+                continue
+            lst.append(package.strip())
+    return lst
+
 setup(
     name='django-data-mirror',
     version=django_data_mirror.__version__,
@@ -21,8 +33,6 @@ setup(
         'Operating System :: OS Independent',
         'Programming Language :: Python',
     ],
-    requires = ["Django (>=1.4)",],
-#    cmdclass={
-#        'test': TestCommand,
-#    },
+    install_requires=get_reqs('requirements.txt'),
+    tests_require=get_reqs('requirements-test.txt'),
 )
