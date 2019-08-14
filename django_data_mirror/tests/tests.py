@@ -19,11 +19,11 @@ import warnings
 
 # import six
 # try:
-    # from io import StringIO
-    # from io import BytesIO
+# from io import StringIO
+# from io import BytesIO
 # except ImportError:
-    # from cStringIO import StringIO
-    # from cStringIO import StringIO as BytesIO
+# from cStringIO import StringIO
+# from cStringIO import StringIO as BytesIO
 
 # import django
 # from django.core.management import call_command

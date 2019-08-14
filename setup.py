@@ -1,10 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from setuptools import setup, find_packages, Command
+import os
+
+from setuptools import setup, find_packages
 
 import django_data_mirror
 
 CURRENT_DIR = os.path.abspath(os.path.dirname(__file__))
+
 
 def get_reqs(*fns):
     lst = []
@@ -16,10 +19,11 @@ def get_reqs(*fns):
             lst.append(package.strip())
     return lst
 
+
 setup(
     name='django-data-mirror',
     version=django_data_mirror.__version__,
-    packages = find_packages(),
+    packages=find_packages(),
     description='Allows caching remote API data in local Django models.',
     author='Chris Spencer',
     author_email='chrisspen@gmail.com',
