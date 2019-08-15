@@ -1,7 +1,7 @@
 # from django.conf import settings
 from django.contrib import admin
 
-import models
+from . import models
 
 
 class DataSourceControlAdmin(admin.ModelAdmin):

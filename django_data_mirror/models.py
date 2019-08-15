@@ -144,7 +144,7 @@ class DataSourceControl(models.Model):
 
 class DataSourceFile(models.Model):
 
-    source = models.ForeignKey('DataSourceControl')
+    source = models.ForeignKey('DataSourceControl', on_delete=models.CASCADE)
 
     name = models.CharField(max_length=200, blank=False, null=False, db_index=True)
 

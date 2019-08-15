@@ -26,6 +26,7 @@ setup(
     packages=find_packages(),
     description='Allows caching remote API data in local Django models.',
     author='Chris Spencer',
+    license="LGPLv3",
     author_email='chrisspen@gmail.com',
     url='http://github.com/chrisspen/django-data-mirror',
     #https://pypi.python.org/pypi?%3Aaction=list_classifiers
@@ -37,6 +38,7 @@ setup(
         'Operating System :: OS Independent',
         'Programming Language :: Python',
     ],
-    install_requires=get_reqs('requirements.txt'),
+    zip_safe=False,
+    install_requires=get_reqs('requirements.txt', 'requirements-django.txt'),
     tests_require=get_reqs('requirements-test.txt'),
 )

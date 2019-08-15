@@ -22,7 +22,7 @@ INSTALLED_APPS = [
     'django.contrib.sites',
     'django_data_mirror',
     'django_data_mirror.tests',
-    'admin_steroids',
+    # 'admin_steroids',
 ]
 
 MEDIA_ROOT = os.path.join(PROJECT_DIR, 'media')
